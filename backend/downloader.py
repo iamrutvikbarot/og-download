@@ -67,6 +67,19 @@ def get_base_ydl_opts() -> Dict[str, Any]:
     }
     if FFMPEG_PATH:
         opts["ffmpeg_location"] = FFMPEG_DIR or FFMPEG_PATH
+
+    # Cookie support for cloud hosting (Render / VPS)
+    cookie_content = os.environ.get("YTDL_COOKIES")
+    if cookie_content:
+        cookie_path = Path("/tmp/cookies.txt")
+        try:
+            cookie_path.write_text(cookie_content, encoding="utf-8")
+            opts["cookiefile"] = str(cookie_path)
+        except Exception:
+            pass
+    elif Path("cookies.txt").exists():
+        opts["cookiefile"] = "cookies.txt"
+
     return opts
 
 # In-memory fast cache for video metadata (15 min TTL)
@@ -76,7 +89,7 @@ _INFO_YDL_INSTANCE: Optional[yt_dlp.YoutubeDL] = None
 
 def get_info_extraction_opts() -> Dict[str, Any]:
     """Ultra-fast options specifically tuned for metadata and format extraction."""
-    return {
+    opts = {
         "quiet": True,
         "no_warnings": True,
         "nocheckcertificate": True,
@@ -94,6 +107,19 @@ def get_info_extraction_opts() -> Dict[str, Any]:
         "ignoreerrors": False,
         "socket_timeout": 8,
     }
+
+    cookie_content = os.environ.get("YTDL_COOKIES")
+    if cookie_content:
+        cookie_path = Path("/tmp/cookies.txt")
+        try:
+            cookie_path.write_text(cookie_content, encoding="utf-8")
+            opts["cookiefile"] = str(cookie_path)
+        except Exception:
+            pass
+    elif Path("cookies.txt").exists():
+        opts["cookiefile"] = "cookies.txt"
+
+    return opts
 
 def get_shared_info_ydl() -> yt_dlp.YoutubeDL:
     """Persistent warm YoutubeDL instance to eliminate cold-start extractor init overhead."""
