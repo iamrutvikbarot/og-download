@@ -167,6 +167,7 @@ def get_base_ydl_opts() -> Dict[str, Any]:
         "source_address": "0.0.0.0",  # Force IPv4 to eliminate IPv6 network delays
         "socket_timeout": 15,
         "js_runtimes": {"node": {}},
+        "extractor_args": {"youtube": {"player_client": ["web", "visionos", "android"]}},
     }
     if FFMPEG_PATH:
         opts["ffmpeg_location"] = FFMPEG_DIR or FFMPEG_PATH
@@ -191,6 +192,7 @@ def get_info_extraction_opts() -> Dict[str, Any]:
         "skip_download": True,
         "format": "all/best",
         "js_runtimes": {"node": {}},
+        "extractor_args": {"youtube": {"player_client": ["web", "visionos", "android"]}},
         "writesubtitles": False,
         "writeautomaticsub": False,
         "getcomments": False,
@@ -239,9 +241,11 @@ def extract_video_info(url: str) -> Dict[str, Any]:
             with yt_dlp.YoutubeDL(opts) as fresh_ydl:
                 info = fresh_ydl.extract_info(url, download=False)
         except Exception:
-            # Fallback to android player_client if datacenter IP triggers YouTube bot detection
-            opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
-            with yt_dlp.YoutubeDL(opts) as fallback_ydl:
+            # Fallback without cookies directly via visionos and android
+            opts_fallback = get_info_extraction_opts()
+            opts_fallback.pop("cookiefile", None)
+            opts_fallback["extractor_args"] = {"youtube": {"player_client": ["visionos", "android"]}}
+            with yt_dlp.YoutubeDL(opts_fallback) as fallback_ydl:
                 info = fallback_ydl.extract_info(url, download=False)
 
     if not info:
