@@ -1,0 +1,7 @@
+venv/
+downloads/
+__pycache__/
+*.pyc
+*.zip
+.vercel/
+.vscode/

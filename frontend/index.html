@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="glass">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OG Download - Super Fast YouTube Downloader</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=3.3" />
+</head>
+<body>
+  <div class="app-background">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+    <div class="thumb-backdrop" id="thumbBackdrop"></div>
+    <div class="bg-vignette"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="brand-icon" title="OG Download">
+          <img src="assets/logo_128.png" alt="OG Download Logo" class="brand-logo-img" />
+        </div>
+        <div class="brand-text">
+          <span class="brand-title"><span class="brand-og">OG</span> Download</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Hero Section -->
+      <section class="hero-section">
+        <h1 class="hero-title">
+          Download YouTube Videos <span class="gradient-text">Super Fast</span>
+        </h1>
+        <p class="hero-subtitle">
+          Paste link and select the format you want to download.
+        </p>
+
+        <!-- Search Bar (Streamlined: Auto-Loads Formats on Paste) -->
+        <div class="search-container">
+          <div class="input-wrapper" id="inputWrapper">
+            <div class="yt-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+              </svg>
+            </div>
+            <input
+              type="text"
+              id="urlInput"
+              class="url-input"
+              placeholder="Paste YouTube link here to instantly load formats..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <div class="input-spinner hidden" id="inputSpinner"></div>
+            <button class="icon-btn" id="pasteBtn" title="Paste from clipboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Paste</span>
+            </button>
+            <button class="icon-btn clear-btn hidden" id="clearBtn" title="Clear input">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Skeleton Loading State -->
+      <section class="skeleton-card hidden" id="loadingSkeleton">
+        <div class="skeleton-grid">
+          <div class="skeleton-thumb shimmer"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-line shimmer title-line"></div>
+            <div class="skeleton-line shimmer author-line"></div>
+            <div class="skeleton-line shimmer"></div>
+            <div class="skeleton-line shimmer"></div>
+            <div class="skeleton-line shimmer"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Video Details & Formats Result Card -->
+      <section class="video-result-card hidden" id="videoResultCard">
+        <div class="card-grid">
+          <!-- Thumbnail Column -->
+          <div class="thumb-col">
+            <div class="thumb-wrapper">
+              <img id="videoThumb" src="" alt="Thumbnail" />
+              <span class="duration-badge" id="videoDuration">00:00</span>
+              <div class="thumb-overlay-play" id="previewThumbBtn" title="Open on YouTube">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </div>
+            </div>
+            <div class="meta-row">
+              <span class="meta-item views-meta" id="videoViews">-- views</span>
+              <span class="meta-item date-meta" id="videoDate">--</span>
+            </div>
+          </div>
+
+          <!-- Info & Formats Column -->
+          <div class="info-col">
+            <h2 class="video-title" id="videoTitle">Video Title</h2>
+            <div class="channel-row">
+              <div class="channel-avatar" id="channelAvatar">YT</div>
+              <span class="channel-name" id="channelName">Channel Name</span>
+            </div>
+
+            <!-- Granular Format Picker -->
+            <div class="format-picker-section">
+              <div class="picker-tabs">
+                <button class="tab-btn active" data-tab="video">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                    <line x1="7" y1="2" x2="7" y2="22"></line>
+                    <line x1="17" y1="2" x2="17" y2="22"></line>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <line x1="2" y1="7" x2="7" y2="7"></line>
+                    <line x1="2" y1="17" x2="7" y2="17"></line>
+                    <line x1="17" y1="17" x2="22" y2="17"></line>
+                    <line x1="17" y1="7" x2="22" y2="7"></line>
+                  </svg>
+                  <span>Video Formats (.mp4)</span>
+                </button>
+                <button class="tab-btn" data-tab="audio">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13"></path>
+                    <circle cx="6" cy="18" r="3"></circle>
+                    <circle cx="18" cy="16" r="3"></circle>
+                  </svg>
+                  <span>Audio Formats (.mp3)</span>
+                </button>
+              </div>
+
+              <!-- Video Formats Grid -->
+              <div class="formats-container" id="videoFormatsList">
+                <!-- Dynamically injected -->
+              </div>
+
+              <!-- Audio Formats Grid -->
+              <div class="formats-container hidden" id="audioFormatsList">
+                <!-- Dynamically injected -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+  </div>
+
+  <script src="app.js?v=3.3"></script>
+</body>
+</html>
