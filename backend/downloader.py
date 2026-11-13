@@ -166,6 +166,7 @@ def get_base_ydl_opts() -> Dict[str, Any]:
         "noplaylist": True,
         "source_address": "0.0.0.0",  # Force IPv4 to eliminate IPv6 network delays
         "socket_timeout": 15,
+        "js_runtimes": {"node": {}},
     }
     if FFMPEG_PATH:
         opts["ffmpeg_location"] = FFMPEG_DIR or FFMPEG_PATH
@@ -188,8 +189,8 @@ def get_info_extraction_opts() -> Dict[str, Any]:
         "no_warnings": True,
         "nocheckcertificate": True,
         "skip_download": True,
-        "youtube_include_dash_manifest": False,  # Skip extra DASH manifest HTTP request
-        "youtube_include_hls_manifest": False,
+        "format": "all/best",
+        "js_runtimes": {"node": {}},
         "writesubtitles": False,
         "writeautomaticsub": False,
         "getcomments": False,
@@ -199,7 +200,7 @@ def get_info_extraction_opts() -> Dict[str, Any]:
         "extract_flat": False,
         "no_color": True,
         "ignoreerrors": False,
-        "socket_timeout": 8,
+        "socket_timeout": 12,
     }
 
     cookie_file = get_cookie_file_path()
