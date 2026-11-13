@@ -125,8 +125,8 @@ def extract_video_info(url: str) -> Dict[str, Any]:
             with yt_dlp.YoutubeDL(opts) as fresh_ydl:
                 info = fresh_ydl.extract_info(url, download=False)
         except Exception:
-            # Fallback to mobile player_client if datacenter IP triggers YouTube bot detection
-            opts["extractor_args"] = {"youtube": {"player_client": ["android", "ios"]}}
+            # Fallback to android player_client if datacenter IP triggers YouTube bot detection
+            opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
             with yt_dlp.YoutubeDL(opts) as fallback_ydl:
                 info = fallback_ydl.extract_info(url, download=False)
 
