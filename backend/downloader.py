@@ -3,6 +3,10 @@ Core downloader engine leveraging yt-dlp with optimized multi-threaded fragment 
 """
 import os
 import re
+import io
+import json
+import base64
+import http.cookiejar
 import math
 import time
 import asyncio
@@ -12,6 +16,7 @@ from typing import Dict, Any, List, Callable, Optional
 import yt_dlp
 
 from backend.config import (
+    BASE_DIR,
     FFMPEG_PATH,
     FFMPEG_DIR,
     NODE_PATH,
@@ -52,6 +57,103 @@ def normalize_youtube_url(url: str) -> str:
         return f"https://www.youtube.com/watch?v={match.group(1)}"
     return url
 
+def normalize_and_save_cookies(raw_content: str) -> Optional[str]:
+    """
+    Robustly normalizes raw cookie strings from Netscape format, JSON format (Cookie-Editor),
+    base64 encoded strings, or escaped newlines/tabs from cloud environment variables.
+    Validates with MozillaCookieJar before writing to prevent any LoadError exceptions.
+    """
+    if not raw_content or not raw_content.strip():
+        return None
+
+    raw = raw_content.strip()
+
+    # 1. Base64 auto-detection
+    try:
+        decoded = base64.b64decode(raw).decode("utf-8", errors="ignore")
+        if "youtube" in decoded.lower():
+            raw = decoded.strip()
+    except Exception:
+        pass
+
+    # 2. Unescape literal escaped \n and \t from cloud dashboard textareas
+    if "\\n" in raw and "\n" not in raw:
+        raw = raw.replace("\\r", "").replace("\\n", "\n").replace("\\t", "\t")
+
+    lines_out = ["# Netscape HTTP Cookie File", "# Automatically normalized for yt-dlp", ""]
+
+    # 3. JSON format detection (e.g. from Cookie-Editor extension)
+    if (raw.startswith("[") and raw.endswith("]")) or (raw.startswith("{") and raw.endswith("}")):
+        try:
+            items = json.loads(raw)
+            if isinstance(items, dict):
+                items = [items]
+            for item in items:
+                domain = item.get("domain", ".youtube.com")
+                flag = "TRUE" if domain.startswith(".") else "FALSE"
+                path = item.get("path", "/")
+                secure = "TRUE" if item.get("secure", False) else "FALSE"
+                expiry = int(item.get("expirationDate", item.get("expiry", 2147483647)) or 2147483647)
+                name = item.get("name", "")
+                value = item.get("value", "")
+                if name:
+                    lines_out.append(f"{domain}\t{flag}\t{path}\t{secure}\t{expiry}\t{name}\t{value}")
+        except Exception:
+            pass
+    else:
+        # 4. Standard Netscape lines or space-separated lines
+        for line in raw.splitlines():
+            line_s = line.strip()
+            if not line_s or line_s.startswith("#"):
+                continue
+            parts = re.split(r"\t+|\s{2,}", line_s)
+            if len(parts) >= 7:
+                lines_out.append("\t".join(parts[:7]))
+            elif len(parts) >= 2:
+                name = parts[-2]
+                val = parts[-1]
+                lines_out.append(f".youtube.com\tTRUE\t/\tTRUE\t2147483647\t{name}\t{val}")
+
+    if len(lines_out) <= 3:
+        return None
+
+    final_content = "\n".join(lines_out) + "\n"
+
+    # 5. Strict validation with MozillaCookieJar to prevent any yt-dlp Netscape format errors
+    jar = http.cookiejar.MozillaCookieJar()
+    try:
+        jar._really_load(io.StringIO(final_content), "validation", True, True)
+    except Exception as e:
+        print(f"Cookie validation error: {e}")
+        return None
+
+    target_path = Path("/tmp/cookies.txt") if os.name != "nt" else (BASE_DIR / "cookies_active.txt")
+    try:
+        target_path.write_text(final_content, encoding="utf-8")
+        return str(target_path)
+    except Exception as e:
+        print(f"Failed to write cookie file: {e}")
+        return None
+
+def get_cookie_file_path() -> Optional[str]:
+    """Retrieve verified cookie file path if available."""
+    cookie_env = os.environ.get("YTDL_COOKIES")
+    if cookie_env:
+        res = normalize_and_save_cookies(cookie_env)
+        if res:
+            return res
+
+    for p in [Path("cookies.txt"), BASE_DIR / "cookies.txt", Path("/tmp/cookies.txt")]:
+        if p.exists():
+            try:
+                content = p.read_text(encoding="utf-8", errors="ignore")
+                res = normalize_and_save_cookies(content)
+                if res:
+                    return res
+            except Exception:
+                pass
+    return None
+
 def get_base_ydl_opts() -> Dict[str, Any]:
     """Base options for yt-dlp with FFmpeg location."""
     opts: Dict[str, Any] = {
@@ -68,17 +170,9 @@ def get_base_ydl_opts() -> Dict[str, Any]:
     if FFMPEG_PATH:
         opts["ffmpeg_location"] = FFMPEG_DIR or FFMPEG_PATH
 
-    # Cookie support for cloud hosting (Render / VPS)
-    cookie_content = os.environ.get("YTDL_COOKIES")
-    if cookie_content:
-        cookie_path = Path("/tmp/cookies.txt")
-        try:
-            cookie_path.write_text(cookie_content, encoding="utf-8")
-            opts["cookiefile"] = str(cookie_path)
-        except Exception:
-            pass
-    elif Path("cookies.txt").exists():
-        opts["cookiefile"] = "cookies.txt"
+    cookie_file = get_cookie_file_path()
+    if cookie_file:
+        opts["cookiefile"] = cookie_file
 
     return opts
 
@@ -108,16 +202,9 @@ def get_info_extraction_opts() -> Dict[str, Any]:
         "socket_timeout": 8,
     }
 
-    cookie_content = os.environ.get("YTDL_COOKIES")
-    if cookie_content:
-        cookie_path = Path("/tmp/cookies.txt")
-        try:
-            cookie_path.write_text(cookie_content, encoding="utf-8")
-            opts["cookiefile"] = str(cookie_path)
-        except Exception:
-            pass
-    elif Path("cookies.txt").exists():
-        opts["cookiefile"] = "cookies.txt"
+    cookie_file = get_cookie_file_path()
+    if cookie_file:
+        opts["cookiefile"] = cookie_file
 
     return opts
 
